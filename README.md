@@ -1,6 +1,6 @@
 
 
-````
+
 # PDF Optimize Aracı 🗜️
 
 ![PDF Optimize Tool](https://i.hizliresim.com/17p4t08.png)
@@ -139,5 +139,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 * pikepdf for PDF compression
 * All contributors and users of this project
 
-````
+
+
 
