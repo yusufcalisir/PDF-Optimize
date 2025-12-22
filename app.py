@@ -5,7 +5,7 @@ import threading
 import glob
 import logging
 import io
-from flask import Flask, request, send_file, jsonify, render_template_string
+from flask import Flask, request, send_file, jsonify, render_template_string, after_this_request
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 import fitz  # PyMuPDF
@@ -104,7 +104,7 @@ def optimize_pdf_task(input_path, output_path, job_id):
         job_status[job_id]["message"] = "İşlem sırasında hata oluştu."
         if os.path.exists(input_path): os.remove(input_path)
 
-# --- HTML TASARIM ---
+# --- HTML TASARIM (YENİ DÜZEN + MOBİL UYUM) ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="tr">
@@ -122,14 +122,15 @@ HTML_TEMPLATE = """
             background: radial-gradient(circle at center, #1e293b, #0f172a, #020617);
             min-height: 100vh; 
             display: flex; 
+            flex-direction: column;
             justify-content: center; 
             align-items: center; 
             color: #e2e8f0; 
-            transition: all 0.3s ease;
             overflow-x: hidden;
+            padding: 20px;
         }
         
-        /* DİL SEÇİM BUTONLARI */
+        /* DİL BAR */
         .lang-container {
             position: absolute;
             top: 25px;
@@ -141,7 +142,7 @@ HTML_TEMPLATE = """
             flex-wrap: nowrap;
             max-width: 100vw;
             overflow-x: auto;
-            scrollbar-width: none;
+            scrollbar-width: none; 
             -ms-overflow-style: none;
         }
         .lang-container::-webkit-scrollbar { display: none; }
@@ -155,26 +156,14 @@ HTML_TEMPLATE = """
             cursor: pointer;
             font-size: 0.75rem;
             font-weight: 700;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            letter-spacing: 0.5px;
+            transition: all 0.3s;
             backdrop-filter: blur(4px);
             white-space: nowrap;
             flex-shrink: 0;
         }
         
-        .lang-btn:hover {
-            color: #00f2ff;
-            border-color: #00f2ff;
-            box-shadow: 0 0 10px rgba(0, 242, 255, 0.3);
-            transform: translateY(-2px);
-        }
-        
-        .lang-btn.active {
-            background: rgba(0, 242, 255, 0.1);
-            color: #00f2ff;
-            border-color: #00f2ff;
-            box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
-        }
+        .lang-btn:hover { color: #00f2ff; border-color: #00f2ff; transform: translateY(-2px); }
+        .lang-btn.active { background: rgba(0, 242, 255, 0.1); color: #00f2ff; border-color: #00f2ff; }
 
         @media (max-width: 768px) {
             .lang-container {
@@ -186,43 +175,77 @@ HTML_TEMPLATE = """
                 border-bottom: 1px solid rgba(255,255,255,0.05);
                 width: 100%;
             }
-            .container { margin-top: 60px; padding: 40px 20px; width: 90%; }
-            h1 { font-size: 2rem; }
-            .btn { width: 100%; padding: 18px 20px; }
+            /* Mobilde üst boşluk ver ki başlık barın altında kalmasın */
+            .main-wrapper { margin-top: 80px; } 
         }
 
+        /* ANA SARMALAYICI */
+        .main-wrapper {
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* BAŞLIK & SLOGAN (KARTIN DIŞINDA) */
+        h1 { 
+            font-size: 2.8rem; 
+            margin-bottom: 10px; 
+            letter-spacing: -1px; 
+            font-weight: 800;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent;
+            line-height: 1.2;
+        }
+        
+        .slogan {
+            font-size: 1.1rem;
+            color: #94a3b8;
+            margin-bottom: 30px;
+            font-weight: 500;
+            max-width: 90%;
+            line-height: 1.5;
+        }
+
+        /* KART TASARIMI */
         .container { 
             background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(30px); 
             -webkit-backdrop-filter: blur(30px); 
-            padding: 60px 40px; 
+            padding: 50px 30px; 
             border-radius: 30px; 
             box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8); 
             text-align: center; 
-            width: 95%; 
-            max-width: 500px; 
+            width: 100%; 
             border: 1px solid rgba(0, 242, 255, 0.15); 
             position: relative; 
             overflow: hidden;
         }
         
+        /* Neon Üst Çizgi */
         .container::before {
             content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
             background: linear-gradient(90deg, transparent, #00f2ff, transparent);
             opacity: 0.8; box-shadow: 0 0 15px #00f2ff;
         }
 
-        h1 { 
-            font-size: 2.5rem; margin-bottom: 15px; letter-spacing: -1px; font-weight: 800;
-            background: linear-gradient(to right, #fff, #94a3b8);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        }
-        
-        .subtitle { 
-            font-size: 0.9rem; margin-bottom: 40px; color: #94a3b8; 
-            background: rgba(0,0,0,0.4); padding: 8px 20px; border-radius: 50px; 
-            display: inline-block; border: 1px solid rgba(255,255,255,0.05);
-            line-height: 1.5;
+        /* GÜVENLİK ROZETİ (KART İÇİNDE) */
+        .security-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(0, 242, 255, 0.05);
+            border: 1px solid rgba(0, 242, 255, 0.2);
+            color: #00f2ff;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 30px;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.1);
         }
 
         .btn { 
@@ -230,7 +253,7 @@ HTML_TEMPLATE = """
             border: none; border-radius: 16px; cursor: pointer; font-weight: 700; color: white; 
             font-size: 1.1rem; display: inline-block; transition: all 0.3s ease; 
             box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4); text-decoration: none; 
-            margin-top: 15px; position: relative; overflow: hidden;
+            margin-top: 15px; width: 100%; max-width: 300px;
         }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 20px 30px -10px rgba(37, 99, 235, 0.6); filter: brightness(1.1); }
 
@@ -242,11 +265,11 @@ HTML_TEMPLATE = """
 
         .progress-container { 
             width: 100%; background-color: rgba(0, 0, 0, 0.4); border-radius: 12px; 
-            margin: 25px 0; height: 8px; overflow: hidden; 
+            margin: 25px 0; height: 10px; overflow: hidden; 
         }
         .progress-bar { 
             width: 0%; height: 100%; background: #00f2ff; box-shadow: 0 0 15px rgba(0, 242, 255, 0.5); 
-            transition: width 0.4s ease; border-radius: 12px;
+            transition: width 0.3s ease; border-radius: 12px;
         }
 
         .stats-box { 
@@ -274,39 +297,46 @@ HTML_TEMPLATE = """
         <button class="lang-btn" onclick="setLang('ar')">AR</button>
     </div>
 
-    <div class="container">
-        <h1 id="txt_title">📄 PDF Optimize</h1>
-        <div class="subtitle" id="txt_subtitle">Kaliteden ödün vermeden boyut küçültün<br>🔒 Güvenli & Otomatik Silinen Dosyalar</div>
+    <div class="main-wrapper">
+        <h1 id="txt_title">PDF Optimize</h1>
+        <div class="slogan" id="txt_slogan">Kaliteden ödün vermeden boyut küçültün</div>
 
-        <div id="uploadSection">
-            <input type="file" id="fileInput" accept="application/pdf" style="display: none;">
-            <label for="fileInput" class="btn" id="txt_selectBtn">📂 PDF Seç</label>
-            <div id="selectedFileName" class="file-name"></div>
-        </div>
+        <div class="container">
+            <div class="security-badge">
+                <span id="txt_badge">🔒 Güvenli & Otomatik Silinen Dosyalar</span>
+            </div>
 
-        <div id="processSection" class="hidden">
-            <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
-            <div id="statusText" style="font-weight: 600; font-size: 0.9rem; color: #94a3b8;">...</div>
-        </div>
+            <div id="uploadSection">
+                <input type="file" id="fileInput" accept="application/pdf" style="display: none;">
+                <label for="fileInput" class="btn" id="txt_selectBtn">📂 PDF Seç</label>
+                <div id="selectedFileName" class="file-name"></div>
+            </div>
 
-        <div id="resultSection" class="hidden">
-            <div id="statsBox" class="stats-box"></div>
-            <a id="downloadLink" href="#" class="btn"><span id="txt_downloadBtn">⬇️ İndir</span></a>
-            <br>
-            <button class="btn secondary-btn" onclick="location.reload()" id="txt_newFileBtn">Yeni Dosya</button>
-        </div>
+            <div id="processSection" class="hidden">
+                <div class="progress-container"><div class="progress-bar" id="progressBar"></div></div>
+                <div id="statusText" style="font-weight: 600; font-size: 0.9rem; color: #94a3b8;">...</div>
+            </div>
 
-        <div id="errorSection" class="hidden">
-            <div id="errorBox" class="error-box"></div>
-            <button class="btn secondary-btn" onclick="location.reload()" id="txt_retryBtn">Tekrar Dene</button>
+            <div id="resultSection" class="hidden">
+                <div id="statsBox" class="stats-box"></div>
+                <a id="downloadLink" href="#" class="btn"><span id="txt_downloadBtn">⬇️ İndir</span></a>
+                <br>
+                <button class="btn secondary-btn" onclick="location.reload()" id="txt_newFileBtn">Yeni Dosya</button>
+            </div>
+
+            <div id="errorSection" class="hidden">
+                <div id="errorBox" class="error-box"></div>
+                <button class="btn secondary-btn" onclick="location.reload()" id="txt_retryBtn">Tekrar Dene</button>
+            </div>
         </div>
     </div>
 
     <script>
         const translations = {
             tr: {
-                title: "📄 PDF Optimize",
-                subtitle: "Kaliteden ödün vermeden boyut küçültün<br>🔒 Güvenli & Otomatik Silinen Dosyalar",
+                title: "PDF Optimize",
+                slogan: "Kaliteden ödün vermeden boyut küçültün",
+                badge: "🔒 Güvenli & Otomatik Silinen Dosyalar",
                 selectBtn: "📂 PDF Dosyası Seç",
                 selected: "Seçilen: ",
                 uploading: "Yükleniyor...",
@@ -319,11 +349,12 @@ HTML_TEMPLATE = """
                 downloadBtn: "⬇️ İndir ve Sil",
                 newFileBtn: "Yeni İşlem",
                 retryBtn: "Tekrar Dene",
-                errorServer: "Hata oluştu."
+                errorServer: "Sunucu hatası veya dosya çok büyük."
             },
             en: {
-                title: "📄 PDF Optimize",
-                subtitle: "Reduce size without losing quality<br>🔒 Secure & Auto-Deleted Files",
+                title: "PDF Optimize",
+                slogan: "Reduce size without losing quality",
+                badge: "🔒 Secure & Auto-Deleted Files",
                 selectBtn: "📂 Select PDF File",
                 selected: "Selected: ",
                 uploading: "Uploading...",
@@ -336,11 +367,12 @@ HTML_TEMPLATE = """
                 downloadBtn: "⬇️ Download & Delete",
                 newFileBtn: "New Task",
                 retryBtn: "Try Again",
-                errorServer: "An error occurred."
+                errorServer: "Server error or file too large."
             },
             de: {
-                title: "📄 PDF Optimieren",
-                subtitle: "Größe reduzieren ohne Qualitätsverlust<br>🔒 Sichere & Automatisch Gelöschte Dateien",
+                title: "PDF Optimieren",
+                slogan: "Größe reduzieren ohne Qualitätsverlust",
+                badge: "🔒 Sichere & Automatisch Gelöschte Dateien",
                 selectBtn: "📂 PDF Auswählen",
                 selected: "Ausgewählt: ",
                 uploading: "Hochladen...",
@@ -353,11 +385,12 @@ HTML_TEMPLATE = """
                 downloadBtn: "⬇️ Laden & Löschen",
                 newFileBtn: "Neue Aufgabe",
                 retryBtn: "Erneut versuchen",
-                errorServer: "Ein Fehler ist aufgetreten."
+                errorServer: "Fehler aufgetreten."
             },
             fr: {
-                title: "📄 Optimiser PDF",
-                subtitle: "Réduire la taille sans perte de qualité<br>🔒 Fichiers Sécurisés & Supprimés Auto.",
+                title: "Optimiser PDF",
+                slogan: "Réduire la taille sans perte de qualité",
+                badge: "🔒 Fichiers Sécurisés & Supprimés Auto.",
                 selectBtn: "📂 Choisir PDF",
                 selected: "Sélectionné : ",
                 uploading: "Envoi...",
@@ -370,11 +403,12 @@ HTML_TEMPLATE = """
                 downloadBtn: "⬇️ Télécharger",
                 newFileBtn: "Nouveau",
                 retryBtn: "Réessayer",
-                errorServer: "Une erreur est survenue."
+                errorServer: "Erreur serveur."
             },
             it: {
-                title: "📄 Ottimizza PDF",
-                subtitle: "Riduci le dimensioni senza perdere qualità<br>🔒 File Sicuri & Eliminazione Auto.",
+                title: "Ottimizza PDF",
+                slogan: "Riduci le dimensioni senza perdere qualità",
+                badge: "🔒 File Sicuri & Eliminazione Auto.",
                 selectBtn: "📂 Seleziona PDF",
                 selected: "Selezionato: ",
                 uploading: "Caricamento...",
@@ -387,11 +421,12 @@ HTML_TEMPLATE = """
                 downloadBtn: "⬇️ Scarica",
                 newFileBtn: "Nuovo",
                 retryBtn: "Riprova",
-                errorServer: "Si è verificato un errore."
+                errorServer: "Errore del server."
             },
             es: {
-                title: "📄 Optimizar PDF",
-                subtitle: "Reducir tamaño sin perder calidad<br>🔒 Archivos Seguros y Eliminación Auto.",
+                title: "Optimizar PDF",
+                slogan: "Reducir tamaño sin perder calidad",
+                badge: "🔒 Archivos Seguros y Eliminación Auto.",
                 selectBtn: "📂 Elegir PDF",
                 selected: "Seleccionado: ",
                 uploading: "Subiendo...",
@@ -404,11 +439,12 @@ HTML_TEMPLATE = """
                 downloadBtn: "⬇️ Descargar",
                 newFileBtn: "Nuevo",
                 retryBtn: "Reintentar",
-                errorServer: "Ocurrió un error."
+                errorServer: "Error del servidor."
             },
             ar: {
-                title: "📄 تحسين PDF",
-                subtitle: "تقليل الحجم دون فقدان الجودة<br>🔒 ملفات آمنة وحذف تلقائي",
+                title: "تحسين PDF",
+                slogan: "تقليل الحجم دون فقدان الجودة",
+                badge: "🔒 ملفات آمنة وحذف تلقائي",
                 selectBtn: "📂 اختر ملف PDF",
                 selected: "المحدد: ",
                 uploading: "جارٍ التحميل...",
@@ -435,8 +471,8 @@ HTML_TEMPLATE = """
             else { document.body.setAttribute('dir', 'ltr'); }
 
             document.getElementById('txt_title').innerText = t.title;
-            // HTML içeriği olarak ata (br etiketi için)
-            document.getElementById('txt_subtitle').innerHTML = t.subtitle;
+            document.getElementById('txt_slogan').innerText = t.slogan;
+            document.getElementById('txt_badge').innerText = t.badge;
             document.getElementById('txt_selectBtn').innerText = t.selectBtn;
             document.getElementById('txt_downloadBtn').innerText = t.downloadBtn;
             document.getElementById('txt_newFileBtn').innerText = t.newFileBtn;
@@ -454,12 +490,10 @@ HTML_TEMPLATE = """
             startUpload(file);
         });
 
-        // XHR ile Yükleme (Progress Bar Destekli)
+        // XHR ile Gerçek Yükleme Takibi
         function startUpload(file) {
             document.getElementById('uploadSection').classList.add('hidden');
             document.getElementById('processSection').classList.remove('hidden');
-            
-            // Sıfırla
             updateProgress(0, translations[currentLang].uploading + " %0");
 
             const formData = new FormData();
@@ -468,11 +502,9 @@ HTML_TEMPLATE = """
             const xhr = new XMLHttpRequest();
             xhr.open('POST', '/upload', true);
 
-            // Yükleme Takibi
             xhr.upload.onprogress = function(e) {
                 if (e.lengthComputable) {
                     const percentComplete = Math.round((e.loaded / e.total) * 100);
-                    // %99'da takılı kalmasın, backend işlemeye geçince metin değişecek
                     let text = translations[currentLang].uploading + " %" + percentComplete;
                     updateProgress(percentComplete, text);
                 }
@@ -483,18 +515,11 @@ HTML_TEMPLATE = """
                     try {
                         const data = JSON.parse(xhr.responseText);
                         checkStatus(data.job_id);
-                    } catch (e) {
-                        showError(translations[currentLang].errorServer);
-                    }
-                } else {
-                    showError(translations[currentLang].errorServer);
-                }
+                    } catch (e) { showError(translations[currentLang].errorServer); }
+                } else { showError(translations[currentLang].errorServer); }
             };
 
-            xhr.onerror = function() {
-                showError("Bağlantı hatası.");
-            };
-
+            xhr.onerror = function() { showError("Bağlantı hatası."); };
             xhr.send(formData);
         }
 
@@ -514,7 +539,6 @@ HTML_TEMPLATE = """
                         setTimeout(() => {
                             document.getElementById('processSection').classList.add('hidden');
                             document.getElementById('resultSection').classList.remove('hidden');
-                            
                             let t = translations[currentLang];
                             document.getElementById('statsBox').innerHTML = `
                                 <strong>${t.successTitle}</strong><br><br>
@@ -543,19 +567,33 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# --- İNDİRME VE SİLME ---
+# --- İNDİRME ROUTE (DÜZELTİLMİŞ) ---
 @app.route("/download/<filename>")
 def download_file(filename):
+    # Dosya yolunu güvenli hale getir ve bul
     file_path = os.path.join(UPLOAD_FOLDER, secure_filename(filename))
-    if not os.path.exists(file_path): return "Dosya bulunamadı veya süresi doldu.", 404
+    
+    # 1. Kontrol: Dosya var mı?
+    if not os.path.exists(file_path):
+        return "Dosya bulunamadı veya süresi doldu.", 404
+
+    # 2. İşlem: Bu istek bitince dosyayı silme talimatı ver (Güvenli Yöntem)
+    @after_this_request
+    def remove_file(response):
+        try:
+            if os.path.exists(file_path):
+                os.remove(file_path)
+                app.logger.info(f"Dosya silindi: {filename}")
+        except Exception as e:
+            app.logger.error(f"Silme hatası: {e}")
+        return response
+
+    # 3. Dosyayı gönder
     try:
-        return_data = io.BytesIO()
-        with open(file_path, 'rb') as f: return_data.write(f.read())
-        return_data.seek(0)
-        os.remove(file_path)
-        app.logger.info(f"Dosya diskten silindi, RAM'den gönderiliyor: {filename}")
-        return send_file(return_data, as_attachment=True, download_name=filename, mimetype='application/pdf')
-    except Exception as e: return "İndirme hatası.", 500
+        return send_file(file_path, as_attachment=True, download_name=filename)
+    except Exception as e:
+        app.logger.error(f"Gönderme hatası: {e}")
+        return "İndirme sırasında hata oluştu.", 500
 
 # --- DİĞER ROUTE'LAR ---
 def allowed_file(filename):
