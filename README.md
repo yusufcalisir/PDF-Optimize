@@ -52,6 +52,9 @@ To get started with the backend, you will need to install the following librarie
 pip install flask
 pip install pikepdf
 pip install werkzeug
+pip install gunicorn
+pip install pymupdf
+pip install Pillow
 ````
 
 * **Flask**: Web framework for building the application
@@ -138,6 +141,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 * Flask for web development
 * pikepdf for PDF compression
 * All contributors and users of this project
+
 
 
 
