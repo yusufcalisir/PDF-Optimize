@@ -104,7 +104,7 @@ def optimize_pdf_task(input_path, output_path, job_id):
         job_status[job_id]["message"] = "İşlem sırasında hata oluştu."
         if os.path.exists(input_path): os.remove(input_path)
 
-# --- HTML TASARIM (DARK NEON + FIXED) ---
+# --- HTML TASARIM ---
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="tr">
@@ -129,6 +129,7 @@ HTML_TEMPLATE = """
             overflow-x: hidden;
         }
         
+        /* DİL SEÇİM BUTONLARI */
         .lang-container {
             position: absolute;
             top: 25px;
@@ -221,6 +222,7 @@ HTML_TEMPLATE = """
             font-size: 0.9rem; margin-bottom: 40px; color: #94a3b8; 
             background: rgba(0,0,0,0.4); padding: 8px 20px; border-radius: 50px; 
             display: inline-block; border: 1px solid rgba(255,255,255,0.05);
+            line-height: 1.5;
         }
 
         .btn { 
@@ -274,7 +276,7 @@ HTML_TEMPLATE = """
 
     <div class="container">
         <h1 id="txt_title">📄 PDF Optimize</h1>
-        <div class="subtitle" id="txt_subtitle">🔒 Güvenli & Otomatik Silinen Dosyalar</div>
+        <div class="subtitle" id="txt_subtitle">Kaliteden ödün vermeden boyut küçültün<br>🔒 Güvenli & Otomatik Silinen Dosyalar</div>
 
         <div id="uploadSection">
             <input type="file" id="fileInput" accept="application/pdf" style="display: none;">
@@ -303,53 +305,123 @@ HTML_TEMPLATE = """
     <script>
         const translations = {
             tr: {
-                title: "📄 PDF Optimize", subtitle: "🔒 Güvenli & Otomatik Silinen Dosyalar",
-                selectBtn: "📂 PDF Dosyası Seç", selected: "Seçilen: ", uploading: "Yükleniyor...",
-                processing: "İşleniyor... %", saving: "Kaydediliyor...", completed: "Tamamlandı!",
-                successTitle: "✅ İşlem Başarılı!", original: "📂 Orijinal: ", newSize: "📉 Yeni Boyut: ",
-                downloadBtn: "⬇️ İndir ve Sil", newFileBtn: "Yeni İşlem", retryBtn: "Tekrar Dene", errorServer: "Hata oluştu."
+                title: "📄 PDF Optimize",
+                subtitle: "Kaliteden ödün vermeden boyut küçültün<br>🔒 Güvenli & Otomatik Silinen Dosyalar",
+                selectBtn: "📂 PDF Dosyası Seç",
+                selected: "Seçilen: ",
+                uploading: "Yükleniyor...",
+                processing: "İşleniyor... %",
+                saving: "Kaydediliyor...",
+                completed: "Tamamlandı!",
+                successTitle: "✅ İşlem Başarılı!",
+                original: "📂 Orijinal: ",
+                newSize: "📉 Yeni Boyut: ",
+                downloadBtn: "⬇️ İndir ve Sil",
+                newFileBtn: "Yeni İşlem",
+                retryBtn: "Tekrar Dene",
+                errorServer: "Hata oluştu."
             },
             en: {
-                title: "📄 PDF Optimize", subtitle: "🔒 Secure & Auto-Deleted Files",
-                selectBtn: "📂 Select PDF File", selected: "Selected: ", uploading: "Uploading...",
-                processing: "Processing... %", saving: "Saving...", completed: "Completed!",
-                successTitle: "✅ Success!", original: "📂 Original: ", newSize: "📉 New Size: ",
-                downloadBtn: "⬇️ Download & Delete", newFileBtn: "New Task", retryBtn: "Try Again", errorServer: "An error occurred."
+                title: "📄 PDF Optimize",
+                subtitle: "Reduce size without losing quality<br>🔒 Secure & Auto-Deleted Files",
+                selectBtn: "📂 Select PDF File",
+                selected: "Selected: ",
+                uploading: "Uploading...",
+                processing: "Processing... %",
+                saving: "Saving...",
+                completed: "Completed!",
+                successTitle: "✅ Success!",
+                original: "📂 Original: ",
+                newSize: "📉 New Size: ",
+                downloadBtn: "⬇️ Download & Delete",
+                newFileBtn: "New Task",
+                retryBtn: "Try Again",
+                errorServer: "An error occurred."
             },
             de: {
-                title: "📄 PDF Optimieren", subtitle: "🔒 Sichere & Automatisch Gelöschte Dateien",
-                selectBtn: "📂 PDF Auswählen", selected: "Ausgewählt: ", uploading: "Hochladen...",
-                processing: "Verarbeiten... %", saving: "Speichern...", completed: "Fertig!",
-                successTitle: "✅ Erfolgreich!", original: "📂 Original: ", newSize: "📉 Neu: ",
-                downloadBtn: "⬇️ Laden & Löschen", newFileBtn: "Neue Aufgabe", retryBtn: "Erneut versuchen", errorServer: "Ein Fehler ist aufgetreten."
+                title: "📄 PDF Optimieren",
+                subtitle: "Größe reduzieren ohne Qualitätsverlust<br>🔒 Sichere & Automatisch Gelöschte Dateien",
+                selectBtn: "📂 PDF Auswählen",
+                selected: "Ausgewählt: ",
+                uploading: "Hochladen...",
+                processing: "Verarbeiten... %",
+                saving: "Speichern...",
+                completed: "Fertig!",
+                successTitle: "✅ Erfolgreich!",
+                original: "📂 Original: ",
+                newSize: "📉 Neu: ",
+                downloadBtn: "⬇️ Laden & Löschen",
+                newFileBtn: "Neue Aufgabe",
+                retryBtn: "Erneut versuchen",
+                errorServer: "Ein Fehler ist aufgetreten."
             },
             fr: {
-                title: "📄 Optimiser PDF", subtitle: "🔒 Fichiers Sécurisés & Supprimés Auto.",
-                selectBtn: "📂 Choisir PDF", selected: "Sélectionné : ", uploading: "Envoi...",
-                processing: "Traitement... %", saving: "Enregistrement...", completed: "Terminé !",
-                successTitle: "✅ Succès !", original: "📂 Original : ", newSize: "📉 Nouveau : ",
-                downloadBtn: "⬇️ Télécharger", newFileBtn: "Nouveau", retryBtn: "Réessayer", errorServer: "Une erreur est survenue."
+                title: "📄 Optimiser PDF",
+                subtitle: "Réduire la taille sans perte de qualité<br>🔒 Fichiers Sécurisés & Supprimés Auto.",
+                selectBtn: "📂 Choisir PDF",
+                selected: "Sélectionné : ",
+                uploading: "Envoi...",
+                processing: "Traitement... %",
+                saving: "Enregistrement...",
+                completed: "Terminé !",
+                successTitle: "✅ Succès !",
+                original: "📂 Original : ",
+                newSize: "📉 Nouveau : ",
+                downloadBtn: "⬇️ Télécharger",
+                newFileBtn: "Nouveau",
+                retryBtn: "Réessayer",
+                errorServer: "Une erreur est survenue."
             },
             it: {
-                title: "📄 Ottimizza PDF", subtitle: "🔒 File Sicuri & Eliminazione Auto.",
-                selectBtn: "📂 Seleziona PDF", selected: "Selezionato: ", uploading: "Caricamento...",
-                processing: "Elaborazione... %", saving: "Salvataggio...", completed: "Completato!",
-                successTitle: "✅ Successo!", original: "📂 Originale: ", newSize: "📉 Nuovo: ",
-                downloadBtn: "⬇️ Scarica", newFileBtn: "Nuovo", retryBtn: "Riprova", errorServer: "Si è verificato un errore."
+                title: "📄 Ottimizza PDF",
+                subtitle: "Riduci le dimensioni senza perdere qualità<br>🔒 File Sicuri & Eliminazione Auto.",
+                selectBtn: "📂 Seleziona PDF",
+                selected: "Selezionato: ",
+                uploading: "Caricamento...",
+                processing: "Elaborazione... %",
+                saving: "Salvataggio...",
+                completed: "Completato!",
+                successTitle: "✅ Successo!",
+                original: "📂 Originale: ",
+                newSize: "📉 Nuovo: ",
+                downloadBtn: "⬇️ Scarica",
+                newFileBtn: "Nuovo",
+                retryBtn: "Riprova",
+                errorServer: "Si è verificato un errore."
             },
             es: {
-                title: "📄 Optimizar PDF", subtitle: "🔒 Archivos Seguros y Eliminación Auto.",
-                selectBtn: "📂 Elegir PDF", selected: "Seleccionado: ", uploading: "Subiendo...",
-                processing: "Procesando... %", saving: "Guardando...", completed: "¡Completado!",
-                successTitle: "✅ ¡Éxito!", original: "📂 Original: ", newSize: "📉 Nuevo: ",
-                downloadBtn: "⬇️ Descargar", newFileBtn: "Nuevo", retryBtn: "Reintentar", errorServer: "Ocurrió un error."
+                title: "📄 Optimizar PDF",
+                subtitle: "Reducir tamaño sin perder calidad<br>🔒 Archivos Seguros y Eliminación Auto.",
+                selectBtn: "📂 Elegir PDF",
+                selected: "Seleccionado: ",
+                uploading: "Subiendo...",
+                processing: "Procesando... %",
+                saving: "Guardando...",
+                completed: "¡Completado!",
+                successTitle: "✅ ¡Éxito!",
+                original: "📂 Original: ",
+                newSize: "📉 Nuevo: ",
+                downloadBtn: "⬇️ Descargar",
+                newFileBtn: "Nuevo",
+                retryBtn: "Reintentar",
+                errorServer: "Ocurrió un error."
             },
             ar: {
-                title: "📄 تحسين PDF", subtitle: "🔒 ملفات آمنة وحذف تلقائي",
-                selectBtn: "📂 اختر ملف PDF", selected: "المحدد: ", uploading: "جارٍ التحميل...",
-                processing: "جارٍ المعالجة... %", saving: "جارٍ الحفظ...", completed: "اكتمل!",
-                successTitle: "✅ تم بنجاح!", original: "📂 الأصل: ", newSize: "📉 الجديد: ",
-                downloadBtn: "⬇️ تنزيل وحذف", newFileBtn: "ملف جديد", retryBtn: "حاول مرة أخرى", errorServer: "حدث خطأ ما."
+                title: "📄 تحسين PDF",
+                subtitle: "تقليل الحجم دون فقدان الجودة<br>🔒 ملفات آمنة وحذف تلقائي",
+                selectBtn: "📂 اختر ملف PDF",
+                selected: "المحدد: ",
+                uploading: "جارٍ التحميل...",
+                processing: "جارٍ المعالجة... %",
+                saving: "جارٍ الحفظ...",
+                completed: "اكتمل!",
+                successTitle: "✅ تم بنجاح!",
+                original: "📂 الأصل: ",
+                newSize: "📉 الجديد: ",
+                downloadBtn: "⬇️ تنزيل وحذف",
+                newFileBtn: "ملف جديد",
+                retryBtn: "حاول مرة أخرى",
+                errorServer: "حدث خطأ ما."
             }
         };
 
@@ -363,7 +435,8 @@ HTML_TEMPLATE = """
             else { document.body.setAttribute('dir', 'ltr'); }
 
             document.getElementById('txt_title').innerText = t.title;
-            document.getElementById('txt_subtitle').innerText = t.subtitle;
+            // HTML içeriği olarak ata (br etiketi için)
+            document.getElementById('txt_subtitle').innerHTML = t.subtitle;
             document.getElementById('txt_selectBtn').innerText = t.selectBtn;
             document.getElementById('txt_downloadBtn').innerText = t.downloadBtn;
             document.getElementById('txt_newFileBtn').innerText = t.newFileBtn;
@@ -381,22 +454,48 @@ HTML_TEMPLATE = """
             startUpload(file);
         });
 
-        async function startUpload(file) {
+        // XHR ile Yükleme (Progress Bar Destekli)
+        function startUpload(file) {
             document.getElementById('uploadSection').classList.add('hidden');
             document.getElementById('processSection').classList.remove('hidden');
-            updateProgress(0, translations[currentLang].uploading);
+            
+            // Sıfırla
+            updateProgress(0, translations[currentLang].uploading + " %0");
 
             const formData = new FormData();
             formData.append('pdf', file);
 
-            try {
-                const res = await fetch('/upload', { method: 'POST', body: formData });
-                const contentType = res.headers.get("content-type");
-                if (!contentType || !contentType.includes("application/json")) throw new Error(translations[currentLang].errorServer);
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || "Hata");
-                checkStatus(data.job_id);
-            } catch (err) { showError(err.message); }
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            // Yükleme Takibi
+            xhr.upload.onprogress = function(e) {
+                if (e.lengthComputable) {
+                    const percentComplete = Math.round((e.loaded / e.total) * 100);
+                    // %99'da takılı kalmasın, backend işlemeye geçince metin değişecek
+                    let text = translations[currentLang].uploading + " %" + percentComplete;
+                    updateProgress(percentComplete, text);
+                }
+            };
+
+            xhr.onload = function() {
+                if (xhr.status === 200) {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        checkStatus(data.job_id);
+                    } catch (e) {
+                        showError(translations[currentLang].errorServer);
+                    }
+                } else {
+                    showError(translations[currentLang].errorServer);
+                }
+            };
+
+            xhr.onerror = function() {
+                showError("Bağlantı hatası.");
+            };
+
+            xhr.send(formData);
         }
 
         function checkStatus(jobId) {
@@ -444,32 +543,19 @@ HTML_TEMPLATE = """
 </html>
 """
 
-# --- İNDİRME VE SİLME (DÜZELTİLDİ) ---
+# --- İNDİRME VE SİLME ---
 @app.route("/download/<filename>")
 def download_file(filename):
     file_path = os.path.join(UPLOAD_FOLDER, secure_filename(filename))
-    
-    # 1. Dosya var mı kontrol et
-    if not os.path.exists(file_path):
-        return "Dosya bulunamadı veya süresi doldu.", 404
-
+    if not os.path.exists(file_path): return "Dosya bulunamadı veya süresi doldu.", 404
     try:
-        # 2. Dosyayı RAM'e (hafızaya) yükle
         return_data = io.BytesIO()
-        with open(file_path, 'rb') as f:
-            return_data.write(f.read())
-        return_data.seek(0) # Başa sar
-
-        # 3. Diskteki dosyayı HEMEN sil (Kullanıcı indirirken diskte olmasın)
+        with open(file_path, 'rb') as f: return_data.write(f.read())
+        return_data.seek(0)
         os.remove(file_path)
         app.logger.info(f"Dosya diskten silindi, RAM'den gönderiliyor: {filename}")
-
-        # 4. Hafızadaki veriyi gönder
         return send_file(return_data, as_attachment=True, download_name=filename, mimetype='application/pdf')
-
-    except Exception as e:
-        app.logger.error(f"Download hatası: {e}")
-        return "İndirme sırasında sunucu hatası.", 500
+    except Exception as e: return "İndirme hatası.", 500
 
 # --- DİĞER ROUTE'LAR ---
 def allowed_file(filename):
